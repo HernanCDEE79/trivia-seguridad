@@ -1,0 +1,22 @@
+{
+  "name": "Trivia Seguridad e Higiene — CD Esteban Echeverría",
+  "short_name": "Trivia SH",
+  "description": "Trivia de capacitación en Seguridad e Higiene Industrial",
+  "start_url": "./index.html?participar=1",
+  "display": "standalone",
+  "background_color": "#0D2137",
+  "theme_color": "#0D2137",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/0D2137/F7941D?text=SH",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/0D2137/F7941D?text=SH",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

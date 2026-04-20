@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0D2137">
+  <title>Trivia Seguridad e Higiene | CD Esteban Echeverría</title>
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(r => console.log('[SW] OK:', r.scope))
+          .catch(e => console.warn('[SW] Error:', e));
+      });
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════ */
+:root {
+  --navy: #0D2137; --navy-light: #1a3a5c;
+  --orange: #F7941D; --orange-dark: #d97c0e;
+  --green: #27AE60; --red: #E74C3C; --yellow: #F1C40F;
+  --bg: #EEF2F7; --white: #FFFFFF;
+  --text: #1a1a2e; --text-muted: #6b7a8d; --border: #dde3ec;
+  --shadow: 0 4px 24px rgba(13,33,55,.12); --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; }
+
+/* ═══════════════════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════════════════ */
+.screen { display:none; min-height:100vh; animation:fadeIn .35s ease; }
+.screen.active { display:flex; flex-direction:column; }
+@keyframes fadeIn   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideUp  { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+@keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+@keyframes bounce   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes spin     { to{transform:rotate(360deg)} }
+@keyframes winner   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+@keyframes confettiFall { from{transform:translateY(-20px) rotate(0deg);opacity:1} to{transform:translateY(100vh) rotate(720deg);opacity:0} }
+
+/* ═══════════════════════════════════════════════════
+   HEADER BAND (compartido)
+═══════════════════════════════════════════════════ */
+.header-band {
+  background:var(--navy); padding:14px 16px;
+  display:flex; align-items:center; gap:12px;
+  position:sticky; top:0; z-index:50;
+}
+.logo-mark {
+  width:36px; height:36px; background:var(--orange); border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Oswald',sans-serif; font-weight:700; font-size:17px; color:var(--white); flex-shrink:0;
+}
+.hb-text { flex:1; color:var(--white); }
+.hb-text h1 { font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; }
+.hb-text p  { font-size:11px; color:rgba(255,255,255,.55); }
+.btn-admin-top {
+  background:rgba(255,255,255,.1); color:rgba(255,255,255,.8);
+  border:1px solid rgba(255,255,255,.25); border-radius:8px;
+  font-size:12px; font-weight:700; padding:7px 12px; cursor:pointer;
+  transition:all .2s; white-space:nowrap; flex-shrink:0;
+}
+.btn-admin-top:hover { background:rgba(255,255,255,.2); }
+
+/* ═══════════════════════════════════════════════════
+   SCREEN: BIENVENIDA / QR
+═══════════════════════════════════════════════════ */
+#screen-welcome {
+  background:linear-gradient(160deg,var(--navy) 0%,var(--navy-light) 55%,#1e4c7a 100%);
+  align-items:center; justify-content:center; padding:30px 20px; text-align:center;
+}
+#screen-welcome .welcome-top {
+  position:absolute; top:16px; right:16px;
+}
+.welcome-badge {
+  background:var(--orange); color:var(--white);
+  font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; letter-spacing:2px;
+  padding:6px 18px; border-radius:50px; margin-bottom:18px; display:inline-block;
+}
+#screen-welcome h1 {
+  font-family:'Oswald',sans-serif; font-size:30px; color:var(--white);
+  line-height:1.15; margin-bottom:8px;
+}
+#screen-welcome h1 span { color:var(--orange); }
+#screen-welcome > p { color:rgba(255,255,255,.7); font-size:15px; margin-bottom:24px; }
+.qr-wrapper {
+  background:var(--white); border-radius:20px; padding:18px;
+  display:inline-block; box-shadow:0 8px 40px rgba(0,0,0,.3); margin-bottom:24px;
+}
+.qr-label { font-size:12px; color:var(--text-muted); margin-top:8px; font-weight:600; }
+.btn-welcome {
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--orange); color:var(--white);
+  font-family:'Oswald',sans-serif; font-size:20px; font-weight:600; letter-spacing:1px;
+  padding:15px 36px; border-radius:50px; border:none; cursor:pointer;
+  box-shadow:0 6px 20px rgba(247,148,29,.4); transition:all .2s;
+  animation:pulse 2.5s infinite; margin-bottom:12px;
+}
+.btn-welcome:hover { transform:translateY(-2px); }
+.btn-admin-welcome {
+  display:block; color:rgba(255,255,255,.3); font-size:11px; cursor:pointer;
+  text-decoration:underline; margin-top:8px;
+}
+
+/* ═══════════════════════════════════════════════════
+   SCREEN: REGISTRO
+═══════════════════════════════════════════════════ */
+#screen-registro { background:var(--bg); }
+.form-body { flex:1; padding:24px 20px; max-width:480px; margin:0 auto; width:100%; }
+.form-title  { font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; color:var(--navy); margin-bottom:4px; }
+.form-subtitle { color:var(--text-muted); font-size:14px; margin-bottom:22px; }
+.field { margin-bottom:16px; }
+.field label { display:block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--navy); margin-bottom:7px; }
+.field input {
+  width:100%; padding:14px 16px; background:var(--white); border:2px solid var(--border);
+  border-radius:12px; font-size:16px; font-family:'Nunito',sans-serif; color:var(--text);
+  transition:border-color .2s; outline:none; text-transform:uppercase;
+}
+.field input[type="number"] { text-transform:none; }
+.field input:focus  { border-color:var(--orange); }
+.field input.error  { border-color:var(--red); animation:shake .3s; }
+.btn-primary {
+  width:100%; padding:16px; background:var(--navy); color:var(--white);
+  border:none; border-radius:14px; font-family:'Oswald',sans-serif;
+  font-size:20px; font-weight:600; cursor:pointer; transition:all .2s; margin-top:8px;
+}
+.btn-primary:hover { background:var(--navy-light); transform:translateY(-1px); }
+.alert-box { padding:14px 18px; border-radius:12px; margin-bottom:16px; border-left:4px solid; font-size:14px; }
+.alert-box.info    { background:#f0f8ff; border-color:#3498DB; color:#1a5f8a; }
+.alert-box.warning { background:#fff3f3; border-color:var(--red); color:#a93226; }
+.alert-title { font-weight:700; margin-bottom:4px; }
+
+/* ═══════════════════════════════════════════════════
+   SCREEN: TRIVIA
+═══════════════════════════════════════════════════ */
+#screen-trivia { background:var(--bg); }
+.trivia-header { background:var(--navy); padding:14px 20px 18px; }
+.trivia-meta  { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.trivia-tema  { background:rgba(247,148,29,.2); color:var(--orange); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px; }
+.trivia-count { font-family:'Oswald',sans-serif; font-size:15px; color:rgba(255,255,255,.7); }
+.trivia-count span { color:var(--white); font-size:19px; }
+.progress-bar  { height:5px; background:rgba(255,255,255,.15); border-radius:10px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--orange); border-radius:10px; transition:width .4s ease; }
+.trivia-body  { flex:1; padding:22px 20px; max-width:540px; margin:0 auto; width:100%; }
+.question-text { font-size:17px; font-weight:700; color:var(--navy); margin-bottom:20px; line-height:1.45; }
+.options { display:flex; flex-direction:column; gap:11px; }
+.option {
+  background:var(--white); border:2px solid var(--border); border-radius:14px;
+  padding:15px 18px; cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; gap:12px; user-select:none;
+}
+.option-circle { width:20px; height:20px; border:2px solid var(--border); border-radius:50%; flex-shrink:0; transition:all .2s; position:relative; }
+.option-text   { font-size:15px; flex:1; color:var(--text); }
+.option:hover  { border-color:var(--orange); transform:translateX(3px); }
+.option.selected { border-color:var(--orange); background:rgba(247,148,29,.06); }
+.option.selected .option-circle { border-color:var(--orange); background:var(--orange); }
+.option.selected .option-circle::after { content:''; position:absolute; width:8px; height:8px; background:var(--white); border-radius:50%; top:50%; left:50%; transform:translate(-50%,-50%); }
+.option.correct  { border-color:var(--green); background:rgba(39,174,96,.08); }
+.option.correct  .option-circle { border-color:var(--green); background:var(--green); }
+.option.incorrect { border-color:var(--red); background:rgba(231,76,60,.06); }
+.option.incorrect .option-circle { border-color:var(--red); background:var(--red); }
+.btn-siguiente { width:100%; padding:15px; background:var(--navy); color:var(--white); border:none; border-radius:14px; font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; cursor:pointer; margin-top:22px; transition:all .2s; }
+.btn-siguiente:disabled { opacity:.4; cursor:not-allowed; }
+.btn-siguiente:not(:disabled):hover { background:var(--navy-light); }
+
+/* ═══════════════════════════════════════════════════
+   SCREEN: FIRMA
+═══════════════════════════════════════════════════ */
+#screen-firma { background:var(--bg); }
+.firma-body { flex:1; padding:22px 20px; max-width:540px; margin:0 auto; width:100%; }
+.firma-intro { text-align:center; margin-bottom:20px; }
+.firma-intro h2 { font-family:'Oswald',sans-serif; font-size:24px; color:var(--navy); margin-bottom:6px; }
+.firma-intro p  { color:var(--text-muted); font-size:14px; }
+.score-badge { display:inline-flex; align-items:center; gap:8px; background:var(--green); color:var(--white); padding:10px 20px; border-radius:50px; font-family:'Oswald',sans-serif; font-size:16px; font-weight:700; margin:14px 0; }
+.score-badge.medium { background:var(--orange); }
+.score-badge.low    { background:var(--red); }
+.canvas-wrapper { background:var(--white); border:2px solid var(--border); border-radius:16px; padding:10px; margin-bottom:14px; box-shadow:var(--shadow); }
+#firma-canvas { display:block; width:100%; border-radius:8px; background:#fafafa; cursor:crosshair; touch-action:none; }
+.firma-tools  { display:flex; gap:10px; margin-bottom:18px; }
+.btn-clear    { flex:1; padding:12px; background:var(--white); border:2px solid var(--border); border-radius:10px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; transition:all .2s; }
+.btn-clear:hover { border-color:var(--red); color:var(--red); }
+.btn-finalizar { flex:2; padding:12px; background:var(--navy); border:none; border-radius:10px; color:var(--white); font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-finalizar:hover { background:var(--navy-light); }
+
+/* ═══════════════════════════════════════════════════
+   SCREEN: FINAL
+═══════════════════════════════════════════════════ */
+#screen-final { background:linear-gradient(160deg,var(--navy) 0%,var(--navy-light) 100%); align-items:center; justify-content:center; padding:30px 20px; text-align:center; }
+.final-icon     { font-size:72px; margin-bottom:16px; animation:bounce 1.5s infinite; }
+.final-title    { font-family:'Oswald',sans-serif; font-size:30px; color:var(--white); margin-bottom:8px; }
+.final-subtitle { color:rgba(255,255,255,.7); font-size:15px; margin-bottom:28px; }
+.numero-card  { background:var(--white); border-radius:20px; padding:24px 22px; margin-bottom:20px; box-shadow:0 10px 40px rgba(0,0,0,.3); width:100%; max-width:340px; }
+.numero-label { font-size:12px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.numero-value { font-family:'Oswald',sans-serif; font-size:26px; color:var(--orange); font-weight:700; letter-spacing:2px; }
+.numero-gracias { font-size:13px; color:var(--text-muted); margin-top:8px; }
+.btn-diploma    { display:inline-flex; align-items:center; gap:10px; background:var(--orange); color:var(--white); font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; padding:14px 34px; border-radius:50px; border:none; cursor:pointer; box-shadow:0 6px 20px rgba(247,148,29,.4); transition:all .2s; margin-bottom:14px; }
+.btn-diploma:hover { transform:translateY(-2px); }
+.btn-reintentar { display:inline-flex; align-items:center; gap:10px; background:rgba(255,255,255,.15); color:var(--white); font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; padding:12px 28px; border-radius:50px; border:2px solid rgba(255,255,255,.3); cursor:pointer; transition:all .2s; }
+.btn-reintentar:hover { background:rgba(255,255,255,.25); }
+.final-note { color:rgba(255,255,255,.6); font-size:13px; margin-top:14px; }
+
+/* ═══════════════════════════════════════════════════
+   ADMIN OVERLAY (panel completo sobre todo)
+═══════════════════════════════════════════════════ */
+#admin-overlay {
+  display:none; position:fixed; inset:0;
+  background:var(--bg); z-index:999; overflow-y:auto;
+  animation:fadeIn .25s ease;
+}
+#admin-overlay.active { display:block; }
+
+/* Login admin */
+.adm-login-wrap {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg,var(--navy) 0%,var(--navy-light) 100%); padding:24px;
+}
+.adm-login-card {
+  background:var(--white); border-radius:24px; padding:40px 36px;
+  width:100%; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.adm-login-card h2 { font-family:'Oswald',sans-serif; font-size:26px; color:var(--navy); margin-bottom:6px; }
+.adm-login-card p  { color:var(--text-muted); font-size:14px; margin-bottom:24px; }
+.adm-login-card input { width:100%; padding:14px 16px; border:2px solid var(--border); border-radius:12px; font-size:18px; font-family:'Nunito',sans-serif; text-align:center; letter-spacing:4px; outline:none; margin-bottom:14px; transition:border-color .2s; }
+.adm-login-card input:focus { border-color:var(--orange); }
+.btn-adm-login { width:100%; padding:14px; background:var(--navy); color:var(--white); border:none; border-radius:12px; font-family:'Oswald',sans-serif; font-size:19px; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-adm-login:hover { background:var(--navy-light); }
+.adm-login-error { color:var(--red); font-size:13px; margin-top:10px; display:none; }
+.adm-login-error.show { display:block; }
+
+/* Admin dashboard */
+.adm-topbar { background:var(--navy); padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:58px; position:sticky; top:0; z-index:10; }
+.adm-brand  { display:flex; align-items:center; gap:10px; }
+.adm-brand-mark { width:32px; height:32px; background:var(--orange); border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:700; font-size:14px; color:var(--white); }
+.adm-brand h1  { font-family:'Oswald',sans-serif; font-size:15px; color:var(--white); font-weight:600; }
+.adm-brand p   { font-size:10px; color:rgba(255,255,255,.5); }
+.adm-topbar-actions { display:flex; gap:8px; align-items:center; }
+.btn-adm-refresh { background:rgba(255,255,255,.1); color:var(--white); border:1px solid rgba(255,255,255,.2); padding:7px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; }
+.btn-adm-refresh:hover { background:rgba(255,255,255,.2); }
+.btn-adm-cerrar { background:transparent; color:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.2); border-radius:8px; padding:7px 12px; font-size:12px; cursor:pointer; }
+
+.adm-tabs { background:var(--white); border-bottom:2px solid var(--border); padding:0 20px; display:flex; gap:2px; overflow-x:auto; }
+.adm-tab  { padding:13px 20px; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer; border-bottom:3px solid transparent; transition:all .2s; white-space:nowrap; position:relative; top:2px; }
+.adm-tab:hover  { color:var(--navy); }
+.adm-tab.active { color:var(--orange); border-bottom-color:var(--orange); }
+
+.adm-content { padding:20px; max-width:1100px; margin:0 auto; }
+.adm-tab-pane { display:none; }
+.adm-tab-pane.active { display:block; animation:fadeIn .25s ease; }
+
+/* Stats row */
+.adm-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:22px; }
+.adm-stat  { background:var(--white); border-radius:14px; padding:18px 20px; box-shadow:var(--shadow); border-left:4px solid var(--orange); }
+.adm-stat:nth-child(2) { border-color:var(--green); }
+.adm-stat:nth-child(3) { border-color:var(--navy); }
+.adm-stat:nth-child(4) { border-color:var(--yellow); }
+.adm-stat-label { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); margin-bottom:6px; }
+.adm-stat-value { font-family:'Oswald',sans-serif; font-size:32px; font-weight:700; color:var(--navy); line-height:1; }
+.adm-stat-sub   { font-size:11px; color:var(--text-muted); margin-top:3px; }
+
+/* Card */
+.adm-card { background:var(--white); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:20px; }
+.adm-card-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.adm-card-header h3 { font-family:'Oswald',sans-serif; font-size:17px; font-weight:700; color:var(--navy); }
+.adm-card-body  { padding:18px 20px; }
+
+/* Table */
+.adm-search { display:flex; gap:10px; margin-bottom:14px; }
+.adm-search input { flex:1; padding:10px 14px; border:2px solid var(--border); border-radius:10px; font-size:14px; font-family:'Nunito',sans-serif; outline:none; }
+.adm-search input:focus { border-color:var(--orange); }
+.adm-table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+thead th { background:var(--bg); padding:10px 12px; text-align:left; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); white-space:nowrap; }
+tbody td { padding:11px 12px; font-size:13px; border-bottom:1px solid var(--border); }
+tbody tr:hover { background:rgba(247,148,29,.03); }
+tbody tr:last-child td { border-bottom:none; }
+.badge { display:inline-flex; padding:3px 9px; border-radius:50px; font-size:11px; font-weight:700; }
+.badge-green  { background:#eefaf3; color:var(--green); }
+.badge-red    { background:#fdecea; color:var(--red); }
+.badge-orange { background:#fff4e6; color:var(--orange); }
+.badge-blue   { background:#e8f0fe; color:#4285f4; }
+.num-chip { font-family:'Oswald',sans-serif; font-size:12px; font-weight:600; color:var(--navy); letter-spacing:.5px; }
+
+/* Sorteo */
+.sorteo-box { background:var(--navy); border-radius:14px; padding:32px 20px; text-align:center; margin-bottom:18px; }
+.sorteo-num  { font-family:'Oswald',sans-serif; font-size:42px; font-weight:700; color:var(--orange); letter-spacing:3px; margin-bottom:8px; min-height:56px; display:flex; align-items:center; justify-content:center; }
+.sorteo-num.anim { animation:winner 1s infinite; color:var(--yellow); }
+.sorteo-name { font-size:17px; color:rgba(255,255,255,.8); font-weight:600; min-height:26px; }
+.winner-box { background:linear-gradient(135deg,#f0ffe8,#d4f7e0); border:2px solid var(--green); border-radius:14px; padding:20px; text-align:center; margin-bottom:14px; display:none; animation:slideUp .4s ease; }
+.winner-box.show { display:block; }
+.winner-box h4 { font-family:'Oswald',sans-serif; font-size:16px; color:var(--green); letter-spacing:1px; margin-bottom:8px; }
+.winner-box .w-num  { font-family:'Oswald',sans-serif; font-size:28px; font-weight:700; color:var(--navy); letter-spacing:2px; }
+.winner-box .w-name { font-size:18px; font-weight:700; color:var(--navy); margin:4px 0; }
+.winner-box .w-emp  { font-size:13px; color:var(--text-muted); }
+.btn-sorteo { width:100%; padding:14px; background:var(--orange); color:var(--white); border:none; border-radius:12px; font-family:'Oswald',sans-serif; font-size:20px; font-weight:600; cursor:pointer; transition:all .2s; margin-bottom:8px; }
+.btn-sorteo:hover:not(:disabled) { background:var(--orange-dark); }
+.btn-sorteo:disabled { opacity:.5; cursor:not-allowed; }
+.btn-reset-sorteo { width:100%; padding:10px; background:transparent; border:2px solid var(--border); border-radius:10px; font-size:13px; font-weight:700; color:var(--text-muted); cursor:pointer; transition:all .2s; }
+.btn-reset-sorteo:hover { border-color:var(--red); color:var(--red); }
+.btn-diplomas { width:100%; padding:14px; background:var(--navy); color:var(--white); border:none; border-radius:12px; font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-diplomas:hover { background:var(--navy-light); }
+.btn-csv { background:rgba(255,255,255,.1); color:var(--white); border:1px solid rgba(255,255,255,.2); padding:7px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:all .2s; }
+.btn-csv:hover { background:rgba(255,255,255,.2); }
+
+/* Confetti */
+#confetti-layer { position:fixed; inset:0; pointer-events:none; z-index:9999; overflow:hidden; }
+.confetti-piece { position:absolute; animation:confettiFall linear forwards; }
+
+/* Overlays comunes */
+#loading { display:none; position:fixed; inset:0; background:rgba(13,33,55,.85); z-index:2000; align-items:center; justify-content:center; flex-direction:column; gap:14px; color:var(--white); }
+#loading.active { display:flex; }
+.spinner { width:42px; height:42px; border:4px solid rgba(255,255,255,.2); border-top-color:var(--orange); border-radius:50%; animation:spin .8s linear infinite; }
+#toast { display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--navy); color:var(--white); padding:12px 22px; border-radius:50px; font-size:14px; font-weight:600; z-index:3000; box-shadow:var(--shadow); white-space:nowrap; animation:slideUp .3s ease; }
+#toast.active { display:block; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+  SCREEN BIENVENIDA / QR
+════════════════════════════════════════ -->
+<div id="screen-welcome" class="screen active" style="position:relative;">
+  <!-- Botón admin en esquina superior derecha -->
+  <button class="btn-admin-welcome" onclick="abrirAdmin()">🔐 Administrador</button>
+
+  <div class="welcome-badge">📋 CAPACITACIÓN OBLIGATORIA</div>
+  <h1>Trivia <span>Seguridad</span><br>e Higiene</h1>
+  <p>Escaneá el QR con tu celular para participar</p>
+  <div class="qr-wrapper">
+    <div id="qrcode"></div>
+    <div class="qr-label">🔍 Apuntá la cámara aquí</div>
+  </div>
+  <button class="btn-welcome" onclick="irRegistro()">📱 PARTICIPAR AHORA</button>
+</div>
+
+<!-- ════════════════════════════════════════
+  SCREEN REGISTRO
+════════════════════════════════════════ -->
+<div id="screen-registro" class="screen">
+  <div class="header-band">
+    <div class="logo-mark">SH</div>
+    <div class="hb-text">
+      <h1>SEGURIDAD E HIGIENE</h1>
+      <p>CD Esteban Echeverría · Capacitación</p>
+    </div>
+    <button class="btn-admin-top" onclick="abrirAdmin()">🔐 Admin</button>
+  </div>
+  <div class="form-body">
+    <h2 class="form-title">Ingresá tus datos</h2>
+    <p class="form-subtitle">Completá el formulario para comenzar la trivia de 12 preguntas</p>
+    <div id="alerta-intento"></div>
+    <div class="field"><label>Nombre</label>
+      <input type="text" id="inp-nombre" placeholder="Tu nombre" autocomplete="given-name"></div>
+    <div class="field"><label>Apellido</label>
+      <input type="text" id="inp-apellido" placeholder="Tu apellido" autocomplete="family-name"></div>
+    <div class="field"><label>DNI</label>
+      <input type="number" id="inp-dni" placeholder="Sin puntos — ej: 30123456" autocomplete="off"></div>
+    <div class="field"><label>Empresa / Sector</label>
+      <input type="text" id="inp-empresa" placeholder="Tu empresa o sector" autocomplete="organization"></div>
+    <button class="btn-primary" onclick="submitRegistro()">🚀 INICIAR TRIVIA</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+  SCREEN TRIVIA
+════════════════════════════════════════ -->
+<div id="screen-trivia" class="screen">
+  <div class="trivia-header">
+    <div class="trivia-meta">
+      <span class="trivia-tema" id="q-tema">—</span>
+      <span class="trivia-count">Preg. <span id="current-q">1</span>/<span id="total-q">12</span></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:8.33%"></div></div>
+  </div>
+  <div class="trivia-body">
+    <p class="question-text" id="question-text">Cargando...</p>
+    <div class="options" id="options-container"></div>
+    <button class="btn-siguiente" id="btn-siguiente" disabled onclick="siguientePregunta()">SIGUIENTE →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+  SCREEN FIRMA
+════════════════════════════════════════ -->
+<div id="screen-firma" class="screen">
+  <div class="header-band">
+    <div class="logo-mark">✓</div>
+    <div class="hb-text">
+      <h1>TRIVIA COMPLETADA</h1>
+      <p>Firmá para recibir tu número</p>
+    </div>
+  </div>
+  <div class="firma-body">
+    <div class="firma-intro">
+      <h2>✍️ Firma de conformidad</h2>
+      <p>Dibujá tu firma con el dedo sobre el área blanca</p>
+      <div id="score-badge" class="score-badge"><span id="score-text">0/12</span> ✓</div>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="firma-canvas" height="150"></canvas>
+    </div>
+    <div class="firma-tools">
+      <button class="btn-clear" onclick="limpiarFirma()">🗑 Borrar</button>
+      <button class="btn-finalizar" onclick="finalizarTrivia()">🏁 FINALIZAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+  SCREEN FINAL
+════════════════════════════════════════ -->
+<div id="screen-final" class="screen">
+  <div id="final-icon" class="final-icon">🎉</div>
+  <h2 id="final-title" class="final-title">¡APROBASTE!</h2>
+  <p id="final-subtitle" class="final-subtitle">¡Completaste exitosamente la capacitación!</p>
+  <div class="numero-card" id="numero-card">
+    <div class="numero-label">Tu número de participación</div>
+    <div class="numero-value" id="num-participacion">—</div>
+    <div class="numero-gracias">Presentá este número para el <strong>sorteo</strong></div>
+  </div>
+  <button class="btn-diploma" id="btn-diploma" onclick="descargarDiploma()">⬇️ DESCARGAR DIPLOMA</button>
+  <button class="btn-reintentar" id="btn-reintentar" style="display:none" onclick="reiniciarTrivia()">🔄 SEGUNDO INTENTO</button>
+  <p class="final-note" id="final-note">✅ Participás del sorteo</p>
+</div>
+
+<!-- ════════════════════════════════════════
+  ADMIN OVERLAY
+════════════════════════════════════════ -->
+<div id="admin-overlay">
+
+  <!-- LOGIN -->
+  <div id="adm-login" class="adm-login-wrap">
+    <div class="adm-login-card">
+      <div style="font-size:44px;margin-bottom:14px;">🔐</div>
+      <h2>Panel Administrador</h2>
+      <p>Ingresá la contraseña para acceder</p>
+      <input type="password" id="adm-pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter') loginAdmin()">
+      <button class="btn-adm-login" onclick="loginAdmin()">INGRESAR</button>
+      <div class="adm-login-error" id="adm-login-err">❌ Contraseña incorrecta</div>
+      <button onclick="cerrarAdmin()" style="background:transparent;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;margin-top:14px;">← Volver a la trivia</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="adm-dashboard" style="display:none;">
+    <div class="adm-topbar">
+      <div class="adm-brand">
+        <div class="adm-brand-mark">SH</div>
+        <div>
+          <h1>Panel Administrador</h1>
+          <p>Trivia Seguridad e Higiene · CD Esteban Echeverría</p>
+        </div>
+      </div>
+      <div class="adm-topbar-actions">
+        <button class="btn-adm-refresh" onclick="cargarParticipantes()">↻ Actualizar</button>
+        <button class="btn-adm-cerrar" onclick="cerrarAdmin()">✕ Cerrar</button>
+      </div>
+    </div>
+
+    <div class="adm-tabs">
+      <div class="adm-tab active" onclick="abrirTab('participantes')">📋 Participantes</div>
+      <div class="adm-tab" onclick="abrirTab('sorteo')">🎰 Sorteo</div>
+      <div class="adm-tab" onclick="abrirTab('diplomas')">🎓 Diplomas</div>
+    </div>
+
+    <div class="adm-content">
+
+      <!-- TAB PARTICIPANTES -->
+      <div id="adm-pane-participantes" class="adm-tab-pane active">
+        <div class="adm-stats">
+          <div class="adm-stat">
+            <div class="adm-stat-label">Total</div>
+            <div class="adm-stat-value" id="adm-stat-total">—</div>
+            <div class="adm-stat-sub">participantes</div>
+          </div>
+          <div class="adm-stat">
+            <div class="adm-stat-label">Aprobados ≥70%</div>
+            <div class="adm-stat-value" id="adm-stat-aprobados">—</div>
+            <div class="adm-stat-sub">para el sorteo</div>
+          </div>
+          <div class="adm-stat">
+            <div class="adm-stat-label">Promedio</div>
+            <div class="adm-stat-value" id="adm-stat-avg">—</div>
+            <div class="adm-stat-sub">sobre 12 puntos</div>
+          </div>
+          <div class="adm-stat">
+            <div class="adm-stat-label">Desaprobados</div>
+            <div class="adm-stat-value" id="adm-stat-des">—</div>
+            <div class="adm-stat-sub">participantes</div>
+          </div>
+        </div>
+
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <h3>Lista de Participantes</h3>
+            <button class="btn-csv" onclick="exportarCSV()">⬇ CSV</button>
+          </div>
+          <div class="adm-card-body">
+            <div class="adm-search">
+              <input type="text" id="adm-search" placeholder="🔍 Buscar nombre, DNI o número..." oninput="filtrarTabla()">
+            </div>
+            <div class="adm-table-wrap">
+              <table>
+                <thead><tr>
+                  <th>#</th><th>Fecha/Hora</th><th>Apellido y Nombre</th>
+                  <th>DNI</th><th>Empresa</th><th>Puntaje</th>
+                  <th>Estado</th><th>Intento</th><th>N° Participación</th>
+                </tr></thead>
+                <tbody id="adm-tabla-body">
+                  <tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa">⏳ Cargando...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB SORTEO -->
+      <div id="adm-pane-sorteo" class="adm-tab-pane">
+        <div class="adm-card">
+          <div class="adm-card-header"><h3>🎰 Sorteo de Ganador</h3></div>
+          <div class="adm-card-body">
+            <div style="background:linear-gradient(135deg,var(--navy),var(--navy-light));border-radius:12px;padding:16px;text-align:center;margin-bottom:16px;">
+              <div style="color:rgba(255,255,255,.6);font-size:13px;margin-bottom:4px;">Participantes aprobados elegibles</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:26px;font-weight:700;color:var(--orange);" id="sorteo-elegibles">— participantes</div>
+            </div>
+            <div class="winner-box" id="winner-box">
+              <h4>🏆 ¡GANADOR DEL SORTEO!</h4>
+              <div class="w-num" id="w-num">—</div>
+              <div class="w-name" id="w-name">—</div>
+              <div class="w-emp" id="w-emp">—</div>
+            </div>
+            <div class="sorteo-box">
+              <div class="sorteo-num" id="sorteo-num">—</div>
+              <div class="sorteo-name" id="sorteo-name"></div>
+            </div>
+            <button class="btn-sorteo" id="btn-sorteo" onclick="realizarSorteo()">🎲 REALIZAR SORTEO</button>
+            <button class="btn-reset-sorteo" onclick="resetSorteo()">↺ Reiniciar sorteo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB DIPLOMAS -->
+      <div id="adm-pane-diplomas" class="adm-tab-pane">
+        <div class="adm-card">
+          <div class="adm-card-header"><h3>🎓 Diplomas de Participación</h3></div>
+          <div class="adm-card-body">
+            <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;font-size:14px;color:var(--text-muted);line-height:1.6;">
+              <strong style="color:var(--navy);display:block;margin-bottom:6px;">📊 Resumen</strong>
+              <span id="diplomas-resumen">Cargá los participantes primero (tab Participantes → Actualizar)</span>
+            </div>
+            <button class="btn-diplomas" onclick="abrirDiplomas()">🎓 GENERAR DIPLOMAS (imprimir)</button>
+            <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:10px;">
+              Genera <strong id="diplomas-count">—</strong> diplomas · Se abre en nueva pestaña
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /adm-content -->
+  </div><!-- /adm-dashboard -->
+</div><!-- /admin-overlay -->
+
+<!-- Confetti -->
+<div id="confetti-layer"></div>
+
+<!-- Loading / Toast -->
+<div id="loading"><div class="spinner"></div><span>Registrando...</span></div>
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════
+  JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+// ──────────────────────────────────────────────────────────────────
+// ✅ CONFIG — URL real del GAS
+// ──────────────────────────────────────────────────────────────────
+const GAS_URL         = 'https://script.google.com/macros/s/AKfycbw98kfXn5lEy8kHzEers0IT5Q73z0DyDRe9KFrcecLhqSE7r3KUsSlCBWH-aA6_7Te6Gw/exec';
+const TRIVIA_ID       = 'seguridad-higiene-cde';   // ID fijo — mismo en trivia y admin
+const TRIVIA_NOMBRE   = 'Seguridad e Higiene — CD Esteban Echeverría';
+const ADMIN_PASSWORD  = 'admin2025';               // Cambiá esta contraseña
+
+// ──────────────────────────────────────────────────────────────────
+// PREGUNTAS (basadas en el tríptico)
+// ──────────────────────────────────────────────────────────────────
+const PREGUNTAS = [
+  { tema:'🚨 Evacuación',         pregunta:'¿Qué debés hacer AL SONAR la alarma de evacuación?', opciones:['Recoger tus pertenencias antes de salir','Dejar lo que estás haciendo y seguir las indicaciones del líder de evacuación','Usar el ascensor para evacuar más rápido'], correcta:1 },
+  { tema:'🚨 Evacuación',         pregunta:'Durante una evacuación con mucho humo, ¿cómo debés desplazarte?', opciones:['Correr lo más rápido posible','Caminar erguido tapándote la nariz con la mano','Taparte la boca con un trapo húmedo y salir gateando'], correcta:2 },
+  { tema:'🚨 Evacuación',         pregunta:'Antes de abrir una puerta durante la evacuación, ¿qué verificás?', opciones:['Tocás el picaporte: si está caliente o la puerta hinchada NO la abrís','La abrís rápido para ver el estado del otro lado','Golpeás tres veces para avisar que salís'], correcta:0 },
+  { tema:'🧹 Orden y Limpieza',   pregunta:'¿Cuál de estas reglas de ORDEN Y LIMPIEZA es correcta?', opciones:['Se puede comer dentro del depósito si se limpia después','Mantener libres y despejados los pasillos de circulación','Se pueden sobrecargar estanterías si el espacio lo permite'], correcta:1 },
+  { tema:'🦺 EPP',                pregunta:'Respecto al uso de EPP, ¿cuál es la afirmación CORRECTA?', opciones:['El EPP es obligatorio y es responsabilidad del colaborador mantenerlo en buen estado','El EPP es optativo según el criterio del colaborador','Si el EPP se deteriora se puede seguir usando hasta fin del turno'], correcta:0 },
+  { tema:'🦺 EPP',                pregunta:'¿Quiénes DEBEN usar ropa reflectiva o chaleco reflectario obligatoriamente?', opciones:['Solo el personal de seguridad','Solo el personal nocturno','Todo el personal que trabaje fuera del depósito entre camiones, de día o de noche'], correcta:2 },
+  { tema:'📦 Manejo de Cargas',   pregunta:'¿Cuál es la técnica CORRECTA para levantar una carga manualmente?', opciones:['Inclinarse con la espalda doblada y tomar la carga','Doblar las rodillas, mantener la espalda recta y usar las piernas para levantarse','Girar el torso mientras se levanta'], correcta:1 },
+  { tema:'📦 Manejo de Cargas',   pregunta:'Si no podés levantar una carga, ¿qué debés hacer?', opciones:['Tirar de ella arrastrándola hacia vos','Levantarla de todas formas aunque sea pesada','Empujar la carga; nunca tirar de ella'], correcta:2 },
+  { tema:'⚡ Riesgo Eléctrico',   pregunta:'¿Quién puede manipular instalaciones o artefactos eléctricos en el depósito?', opciones:['Cualquier colaborador en caso de emergencia','Solo personal autorizado','El encargado de turno en ausencia del técnico'], correcta:1 },
+  { tema:'🚜 Máquinas Eléctricas',pregunta:'Al circular dentro de las calles de los racks con una máquina, ¿qué elemento es OBLIGATORIO?', opciones:['Guantes de seguridad','Casco','Arnés de seguridad'], correcta:1 },
+  { tema:'🚜 Máquinas Eléctricas',pregunta:'Antes de operar una máquina eléctrica, ¿qué se debe verificar?', opciones:['Solo la carga de la batería','Solo que no haya fugas de aceite','Estado general: frenos, bocina, batería, sistema de hombre a bordo, entre otros'], correcta:2 },
+  { tema:'🔥 Prevención Incendios',pregunta:'Al usar un extintor, ¿hacia dónde se debe apuntar?', opciones:['A la parte superior de las llamas','A la base del fuego','Al centro de la zona incendiada'], correcta:1 }
+];
+
+// ──────────────────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────────────────
+const STATE = {
+  userData: {}, currentQuestion: 0, puntaje: 0,
+  respuestas: [], numeroParticipacion: '', firmaData: '',
+  intento: 1, esReintento: false
+};
+
+// ──────────────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  generarQR();
+  initCanvas();
+  // Si viene con ?participar=1 saltar directo al registro
+  if (new URLSearchParams(location.search).get('participar') === '1') {
+    mostrarScreen('registro');
+  }
+});
+
+// ──────────────────────────────────────────────────────────────────
+// QR
+// ──────────────────────────────────────────────────────────────────
+function generarQR() {
+  const url = location.origin + location.pathname + '?participar=1';
+  try {
+    new QRCode(document.getElementById('qrcode'), {
+      text: url, width: 180, height: 180,
+      colorDark: '#0D2137', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) { console.warn('QR error:', e); }
+}
+
+// ──────────────────────────────────────────────────────────────────
+// NAVEGACIÓN TRIVIA
+// ──────────────────────────────────────────────────────────────────
+function mostrarScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function irRegistro() { mostrarScreen('registro'); }
+
+// ──────────────────────────────────────────────────────────────────
+// REGISTRO
+// ──────────────────────────────────────────────────────────────────
+async function submitRegistro() {
+  const nombre   = document.getElementById('inp-nombre').value.trim().toUpperCase();
+  const apellido = document.getElementById('inp-apellido').value.trim().toUpperCase();
+  const dni      = document.getElementById('inp-dni').value.trim();
+  const empresa  = document.getElementById('inp-empresa').value.trim().toUpperCase();
+
+  const campos = [
+    { el: document.getElementById('inp-nombre'),   val: nombre },
+    { el: document.getElementById('inp-apellido'), val: apellido },
+    { el: document.getElementById('inp-dni'),      val: dni },
+    { el: document.getElementById('inp-empresa'),  val: empresa }
+  ];
+
+  let valid = true;
+  campos.forEach(c => {
+    c.el.classList.remove('error');
+    if (!c.val) { c.el.classList.add('error'); valid = false; setTimeout(() => c.el.classList.remove('error'), 600); }
+  });
+  if (!valid) { showToast('⚠️ Completá todos los campos'); return; }
+  if (dni.length < 7 || dni.length > 8) { showToast('⚠️ DNI debe tener 7 u 8 dígitos'); return; }
+
+  showLoading(true);
+  // ✅ Verificar intentos en GAS
+  try {
+    const resp = await fetch(`${GAS_URL}?action=checkDNI&triviaId=${TRIVIA_ID}&dni=${dni}`);
+    const data = await resp.json();
+    if (data.existe) {
+      if (data.intentos >= 2) {
+        showLoading(false);
+        document.getElementById('alerta-intento').innerHTML = `
+          <div class="alert-box warning"><div class="alert-title">❌ Límite Alcanzado</div>
+          <div>Ya usaste tus 2 intentos. Esperá el próximo QR para participar.</div></div>`;
+        showToast('❌ Ya usaste tus 2 intentos');
+        return;
+      }
+      STATE.intento = data.intentos + 1;
+      STATE.esReintento = true;
+      document.getElementById('alerta-intento').innerHTML = `
+        <div class="alert-box info"><div class="alert-title">🔄 Segundo Intento</div>
+        <div>Este es tu intento ${STATE.intento} de 2. ¡Mucha suerte!</div></div>`;
+    } else {
+      document.getElementById('alerta-intento').innerHTML = '';
+    }
+  } catch(e) {
+    console.warn('No se pudo verificar DNI:', e);
+  }
+
+  showLoading(false);
+  STATE.userData = { nombre, apellido, dni, empresa };
+  STATE.currentQuestion = 0; STATE.puntaje = 0; STATE.respuestas = [];
+  mostrarScreen('trivia');
+  cargarPregunta();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// TRIVIA
+// ──────────────────────────────────────────────────────────────────
+function cargarPregunta() {
+  const q = PREGUNTAS[STATE.currentQuestion];
+  document.getElementById('q-tema').textContent = q.tema;
+  document.getElementById('current-q').textContent = STATE.currentQuestion + 1;
+  document.getElementById('total-q').textContent = PREGUNTAS.length;
+  document.getElementById('question-text').textContent = q.pregunta;
+  document.getElementById('progress-fill').style.width = ((STATE.currentQuestion + 1) / PREGUNTAS.length * 100) + '%';
+
+  const cont = document.getElementById('options-container');
+  cont.innerHTML = '';
+  q.opciones.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option'; div.dataset.index = i;
+    div.innerHTML = `<div class="option-circle"></div><div class="option-text">${opt}</div>`;
+    div.addEventListener('click', () => seleccionarOpcion(i));
+    cont.appendChild(div);
+  });
+  document.getElementById('btn-siguiente').disabled = true;
+}
+
+function seleccionarOpcion(idx) {
+  document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  document.querySelectorAll('.option')[idx].classList.add('selected');
+  STATE.respuestas[STATE.currentQuestion] = idx;
+  document.getElementById('btn-siguiente').disabled = false;
+}
+
+function siguientePregunta() {
+  const q = PREGUNTAS[STATE.currentQuestion];
+  const resp = STATE.respuestas[STATE.currentQuestion];
+  const opts = document.querySelectorAll('.option');
+  opts.forEach(o => { o.style.pointerEvents = 'none'; });
+  opts[q.correcta].classList.add('correct');
+  if (resp !== q.correcta) opts[resp].classList.add('incorrect');
+  else STATE.puntaje++;
+
+  setTimeout(() => {
+    STATE.currentQuestion++;
+    if (STATE.currentQuestion >= PREGUNTAS.length) mostrarFirma();
+    else cargarPregunta();
+  }, 1000);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// FIRMA
+// ──────────────────────────────────────────────────────────────────
+let firmaCanvas, firmaCtx, dibujando = false, ultimoX, ultimoY;
+
+function mostrarFirma() {
+  mostrarScreen('firma');
+  const badge = document.getElementById('score-badge');
+  document.getElementById('score-text').textContent = `${STATE.puntaje}/${PREGUNTAS.length}`;
+  const pct = STATE.puntaje / PREGUNTAS.length * 100;
+  badge.className = 'score-badge' + (pct >= 70 ? '' : pct >= 50 ? ' medium' : ' low');
+  ajustarCanvas();
+}
+
+function initCanvas() {
+  firmaCanvas = document.getElementById('firma-canvas');
+  firmaCtx = firmaCanvas.getContext('2d');
+  firmaCtx.strokeStyle = '#0D2137'; firmaCtx.lineWidth = 2.5;
+  firmaCtx.lineCap = 'round'; firmaCtx.lineJoin = 'round';
+
+  const on = (ev, fn) => firmaCanvas.addEventListener(ev, fn, { passive: false });
+  on('mousedown',  e => { dibujando = true; const p = getPos(e); ultimoX = p.x; ultimoY = p.y; });
+  on('mousemove',  e => { if (!dibujando) return; e.preventDefault(); const p = getPos(e); trazar(p.x, p.y); ultimoX = p.x; ultimoY = p.y; });
+  on('mouseup',    () => dibujando = false);
+  on('mouseleave', () => dibujando = false);
+  on('touchstart', e => { e.preventDefault(); dibujando = true; const p = getTPos(e); ultimoX = p.x; ultimoY = p.y; });
+  on('touchmove',  e => { e.preventDefault(); if (!dibujando) return; const p = getTPos(e); trazar(p.x, p.y); ultimoX = p.x; ultimoY = p.y; });
+  on('touchend',   e => { e.preventDefault(); dibujando = false; });
+}
+
+function ajustarCanvas() {
+  const w = firmaCanvas.parentElement.clientWidth - 24;
+  const r = window.devicePixelRatio || 1;
+  firmaCanvas.width = w * r; firmaCanvas.height = 150 * r;
+  firmaCanvas.style.width = w + 'px'; firmaCanvas.style.height = '150px';
+  firmaCtx.scale(r, r);
+  firmaCtx.strokeStyle = '#0D2137'; firmaCtx.lineWidth = 2.5;
+  firmaCtx.lineCap = 'round'; firmaCtx.lineJoin = 'round';
+}
+
+function getPos(e)  { const r = firmaCanvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function getTPos(e) { const r = firmaCanvas.getBoundingClientRect(); const t = e.touches[0]; return { x: t.clientX - r.left, y: t.clientY - r.top }; }
+function trazar(x, y) { firmaCtx.beginPath(); firmaCtx.moveTo(ultimoX, ultimoY); firmaCtx.lineTo(x, y); firmaCtx.stroke(); }
+function limpiarFirma() { firmaCtx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height); }
+function canvasVacio() { return !firmaCtx.getImageData(0, 0, firmaCanvas.width, firmaCanvas.height).data.some(v => v !== 0); }
+
+// ──────────────────────────────────────────────────────────────────
+// FINALIZAR
+// ──────────────────────────────────────────────────────────────────
+async function finalizarTrivia() {
+  if (canvasVacio()) { showToast('✍️ Por favor firmá antes de finalizar'); return; }
+
+  STATE.firmaData = firmaCanvas.toDataURL('image/png');
+  STATE.numeroParticipacion = `CAP-${new Date().getFullYear()}-${Math.floor(Math.random() * 900000 + 100000)}`;
+
+  const pct = STATE.puntaje / PREGUNTAS.length * 100;
+  const aprobado = pct >= 70;
+
+  document.getElementById('final-icon').textContent     = aprobado ? '🎉' : '😔';
+  document.getElementById('final-title').textContent    = aprobado ? '¡APROBASTE!' : 'No Aprobaste';
+  document.getElementById('final-subtitle').textContent = aprobado
+    ? `Completaste con ${Math.round(pct)}% de aciertos`
+    : `Necesitás 70% o más para el sorteo (obtuviste ${Math.round(pct)}%)`;
+
+  document.getElementById('numero-card').style.display  = aprobado ? 'block' : 'none';
+  document.getElementById('btn-diploma').style.display  = aprobado ? 'inline-flex' : 'none';
+  document.getElementById('num-participacion').textContent = STATE.numeroParticipacion;
+
+  if (!aprobado && STATE.intento < 2) {
+    document.getElementById('btn-reintentar').style.display = 'inline-flex';
+    document.getElementById('final-note').textContent = '🔄 Tenés una segunda oportunidad';
+  } else {
+    document.getElementById('btn-reintentar').style.display = 'none';
+    document.getElementById('final-note').textContent = aprobado
+      ? '✅ Participás del sorteo'
+      : '❌ Usaste tus 2 intentos. Esperá el próximo QR.';
+  }
+
+  mostrarScreen('final');
+  await registrarEnSheets(aprobado);
+}
+
+// ──────────────────────────────────────────────────────────────────
+// ✅ REGISTRO EN SHEETS — bug corregido
+// ──────────────────────────────────────────────────────────────────
+async function registrarEnSheets(aprobado) {
+  // ✅ La condición correcta verifica el PLACEHOLDER, no la URL real
+  if (!GAS_URL || GAS_URL === 'https://script.google.com/macros/s/AKfycbw98kfXn5lEy8kHzEers0IT5Q73z0DyDRe9KFrcecLhqSE7r3KUsSlCBWH-aA6_7Te6Gw/exec') {
+    console.warn('GAS_URL no configurada. El registro no se guardará.');
+    return;
+  }
+
+  showLoading(true);
+  try {
+    const payload = {
+      action:       'register',
+      triviaId:     TRIVIA_ID,       // ✅ mismo ID que usa el admin
+      triviaNombre: TRIVIA_NOMBRE,
+      nombre:       STATE.userData.nombre,
+      apellido:     STATE.userData.apellido,
+      dni:          STATE.userData.dni,
+      empresa:      STATE.userData.empresa,
+      puntaje:      STATE.puntaje,
+      numero:       aprobado ? STATE.numeroParticipacion : '',
+      firmaCapturada: 'Sí'
+    };
+
+    const resp = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+    const data = await resp.json();
+    console.log('✅ Registro en Sheets:', data);
+  } catch (err) {
+    console.error('Error registrando en Sheets:', err);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function reiniciarTrivia() {
+  STATE.currentQuestion = 0; STATE.puntaje = 0;
+  STATE.respuestas = []; STATE.firmaData = '';
+  limpiarFirma();
+  mostrarScreen('trivia');
+  cargarPregunta();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// DIPLOMA
+// ──────────────────────────────────────────────────────────────────
+function descargarDiploma() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 900; canvas.height = 640;
+  const ctx = canvas.getContext('2d');
+  dibujarDiploma(ctx, 900, 640, () => {
+    const a = document.createElement('a');
+    a.download = `diploma-${STATE.userData.apellido}-${STATE.userData.nombre}-${STATE.numeroParticipacion}.png`;
+    a.href = canvas.toDataURL('image/png'); a.click();
+    showToast('✅ Diploma descargado');
+  });
+}
+
+function dibujarDiploma(ctx, W, H, cb) {
+  const navy = '#0D2137', or = '#F7941D';
+  ctx.fillStyle = '#FAFAFA'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = navy; ctx.fillRect(0,0,W,110);
+  ctx.fillStyle = or; ctx.fillRect(0,108,W,6);
+  ctx.fillStyle = or; ctx.font='bold 40px Arial'; ctx.textAlign='center';
+  ctx.fillText('DIPLOMA DE PARTICIPACIÓN', W/2, 65);
+  ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='17px Arial';
+  ctx.fillText('Capacitación en Seguridad e Higiene — CD Esteban Echeverría', W/2, 95);
+  ctx.strokeStyle=navy; ctx.lineWidth=3; ctx.strokeRect(18,124,W-36,H-142);
+  ctx.strokeStyle=or; ctx.lineWidth=1.5; ctx.strokeRect(26,132,W-52,H-158);
+  ctx.beginPath(); ctx.arc(W/2,195,42,0,Math.PI*2); ctx.fillStyle=navy; ctx.fill();
+  ctx.beginPath(); ctx.arc(W/2,195,36,0,Math.PI*2); ctx.strokeStyle=or; ctx.lineWidth=3; ctx.stroke();
+  ctx.fillStyle=or; ctx.font='bold 32px Arial'; ctx.fillText('✓',W/2,207);
+  ctx.fillStyle='#888'; ctx.font='16px Arial'; ctx.fillText('Se certifica que:',W/2,262);
+  const fullName = `${STATE.userData.nombre} ${STATE.userData.apellido}`;
+  ctx.fillStyle=navy; ctx.font='bold 42px Arial'; ctx.fillText(fullName,W/2,312);
+  ctx.strokeStyle=or; ctx.lineWidth=2;
+  const nw = ctx.measureText(fullName).width;
+  ctx.beginPath(); ctx.moveTo(W/2-nw/2,322); ctx.lineTo(W/2+nw/2,322); ctx.stroke();
+  ctx.fillStyle='#555'; ctx.font='17px Arial'; ctx.fillText('participó satisfactoriamente en la capacitación de',W/2,356);
+  ctx.fillStyle=navy; ctx.font='bold 22px Arial'; ctx.fillText('SEGURIDAD E HIGIENE EN EL TRABAJO',W/2,386);
+  ctx.fillStyle='#888'; ctx.font='15px Arial';
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  ctx.fillText(`Empresa: ${STATE.userData.empresa}  ·  DNI: ${STATE.userData.dni}  ·  Fecha: ${fecha}`,W/2,418);
+
+  function drawSig() {
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(W/2-130,510); ctx.lineTo(W/2+130,510); ctx.stroke();
+    ctx.fillStyle='#aaa'; ctx.font='13px Arial'; ctx.fillText('Firma del participante',W/2,526);
+    ctx.fillStyle=navy; ctx.fillRect(0,H-52,W,52);
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Arial';
+    ctx.fillText(`N° de Participación: ${STATE.numeroParticipacion}`,W/2,H-32);
+    ctx.fillStyle=or; ctx.font='bold 15px Arial';
+    ctx.fillText('¡Gracias por participar en la capacitación!',W/2,H-14);
+    if (cb) cb();
+  }
+  if (STATE.firmaData) {
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img,W/2-130,442,260,66); drawSig(); };
+    img.onerror = drawSig; img.src = STATE.firmaData;
+  } else drawSig();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// ── ADMIN PANEL ──────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+let adminLogueado = false;
+let participantes = [];
+let ganador = null;
+let sorteando = false;
+
+function abrirAdmin() {
+  document.getElementById('admin-overlay').classList.add('active');
+  if (!adminLogueado) {
+    document.getElementById('adm-login').style.display = 'flex';
+    document.getElementById('adm-dashboard').style.display = 'none';
+    setTimeout(() => document.getElementById('adm-pwd').focus(), 200);
+  }
+}
+
+function cerrarAdmin() {
+  document.getElementById('admin-overlay').classList.remove('active');
+  document.getElementById('adm-pwd').value = '';
+}
+
+function loginAdmin() {
+  const pwd = document.getElementById('adm-pwd').value;
+  if (pwd === ADMIN_PASSWORD) {
+    adminLogueado = true;
+    document.getElementById('adm-login').style.display = 'none';
+    document.getElementById('adm-dashboard').style.display = 'block';
+    document.getElementById('adm-login-err').classList.remove('show');
+    cargarParticipantes();
+  } else {
+    document.getElementById('adm-login-err').classList.add('show');
+    document.getElementById('adm-pwd').value = '';
+    document.getElementById('adm-pwd').focus();
+  }
+}
+
+function abrirTab(nombre) {
+  document.querySelectorAll('.adm-tab').forEach((t, i) => {
+    const nombres = ['participantes', 'sorteo', 'diplomas'];
+    t.classList.toggle('active', nombres[i] === nombre);
+  });
+  document.querySelectorAll('.adm-tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('adm-pane-' + nombre).classList.add('active');
+}
+
+// ── Cargar participantes desde GAS ──
+async function cargarParticipantes() {
+  const tbody = document.getElementById('adm-tabla-body');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa">⏳ Cargando participantes...</td></tr>';
+
+  // ✅ Misma condición correcta
+  if (!GAS_URL || GAS_URL === 'https://script.google.com/macros/s/AKfycbw98kfXn5lEy8kHzEers0IT5Q73z0DyDRe9KFrcecLhqSE7r3KUsSlCBWH-aA6_7Te6Gw/exec') {
+    participantes = datosDemo();
+    renderTabla(participantes);
+    actualizarStatsAdmin();
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${GAS_URL}?action=getAll&triviaId=${TRIVIA_ID}`);
+    const data = await resp.json();
+    participantes = data.participantes || [];
+    renderTabla(participantes);
+    actualizarStatsAdmin();
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#e74c3c">⚠️ Error al cargar. Verificá la URL del GAS.</td></tr>';
+    console.error(err);
+  }
+}
+
+function datosDemo() {
+  return [
+    { Timestamp: new Date().toISOString(), Nombre:'JUAN', Apellido:'GARCÍA', DNI:'28456789', Empresa:'CD CENTRAL', Puntaje:'10/12', 'Puntaje Numérico':10, 'Aprobado (≥70%)':'SÍ', Intento:1, 'N° Participación':'CAP-2025-384921' },
+    { Timestamp: new Date().toISOString(), Nombre:'MARÍA', Apellido:'LÓPEZ', DNI:'32145678', Empresa:'CARREFOUR', Puntaje:'12/12', 'Puntaje Numérico':12, 'Aprobado (≥70%)':'SÍ', Intento:1, 'N° Participación':'CAP-2025-729341' },
+    { Timestamp: new Date().toISOString(), Nombre:'CARLOS', Apellido:'MARTÍNEZ', DNI:'25678901', Empresa:'CD CENTRAL', Puntaje:'7/12', 'Puntaje Numérico':7, 'Aprobado (≥70%)':'SÍ', Intento:2, 'N° Participación':'CAP-2025-513849' },
+    { Timestamp: new Date().toISOString(), Nombre:'ANA', Apellido:'FERNÁNDEZ', DNI:'30912345', Empresa:'LOGÍSTICA SRL', Puntaje:'5/12', 'Puntaje Numérico':5, 'Aprobado (≥70%)':'NO', Intento:2, 'N° Participación':'' },
+  ];
+}
+
+function renderTabla(data) {
+  const tbody = document.getElementById('adm-tabla-body');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:#aaa">📭 Sin participantes registrados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map((p, i) => {
+    const ts = p['Timestamp'] ? new Date(p['Timestamp']).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const pNum = p['Puntaje Numérico'] ?? parseInt(p['Puntaje']) ?? 0;
+    const aprobado = p['Aprobado (≥70%)'] === 'SÍ' || pNum >= 9;
+    const badgeCls = aprobado ? 'badge-green' : 'badge-red';
+    const estadoTxt = aprobado ? '✅ Aprobado' : '❌ Desaprobado';
+    const intento = p['Intento'] ?? '—';
+    const num = p['N° Participación'] ?? '';
+    return `<tr>
+      <td style="color:var(--text-muted)">${i+1}</td>
+      <td>${ts}</td>
+      <td style="font-weight:700">${p['Apellido']||''}, ${p['Nombre']||''}</td>
+      <td>${p['DNI']||'—'}</td>
+      <td>${p['Empresa']||'—'}</td>
+      <td><strong>${p['Puntaje']||'—'}</strong></td>
+      <td><span class="badge ${badgeCls}">${estadoTxt}</span></td>
+      <td style="text-align:center">${intento}</td>
+      <td><span class="num-chip">${num || '—'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarTabla() {
+  const q = document.getElementById('adm-search').value.toLowerCase();
+  renderTabla(participantes.filter(p => JSON.stringify(p).toLowerCase().includes(q)));
+}
+
+function actualizarStatsAdmin() {
+  const total = participantes.length;
+  const aprobados = participantes.filter(p =>
+    p['Aprobado (≥70%)'] === 'SÍ' || (p['Puntaje Numérico'] ?? parseInt(p['Puntaje'])) >= 9
+  ).length;
+  const puntajes = participantes.map(p => p['Puntaje Numérico'] ?? parseInt(p['Puntaje']) ?? 0);
+  const avg = total > 0 ? (puntajes.reduce((a,b)=>a+b,0)/total).toFixed(1) : '—';
+
+  document.getElementById('adm-stat-total').textContent     = total;
+  document.getElementById('adm-stat-aprobados').textContent = aprobados;
+  document.getElementById('adm-stat-avg').textContent       = avg;
+  document.getElementById('adm-stat-des').textContent       = total - aprobados;
+  document.getElementById('sorteo-elegibles').textContent   = `${aprobados} participante${aprobados !== 1 ? 's' : ''}`;
+  document.getElementById('diplomas-count').textContent     = total;
+  document.getElementById('diplomas-resumen').innerHTML =
+    `<strong>${total}</strong> participantes · Promedio: <strong>${avg}/12</strong> · Aprobados: <strong>${aprobados}</strong>`;
+}
+
+// ── EXPORTAR CSV ──
+function exportarCSV() {
+  if (!participantes.length) { showToast('Sin datos para exportar'); return; }
+  const headers = ['Timestamp','Apellido','Nombre','DNI','Empresa','Puntaje','Aprobado','Intento','N° Participación'];
+  const rows = participantes.map(p => [
+    p['Timestamp']||'', p['Apellido']||'', p['Nombre']||'',
+    p['DNI']||'', p['Empresa']||'', p['Puntaje']||'',
+    p['Aprobado (≥70%)']||'', p['Intento']||'', p['N° Participación']||''
+  ]);
+  const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = `participantes-${new Date().toLocaleDateString('es-AR').replace(/\//g,'-')}.csv`;
+  a.click(); showToast('✅ CSV descargado');
+}
+
+// ── SORTEO ──
+function realizarSorteo() {
+  if (sorteando) return;
+  const elegibles = participantes.filter(p =>
+    (p['Aprobado (≥70%)'] === 'SÍ' || (p['Puntaje Numérico'] ?? parseInt(p['Puntaje'])) >= 9)
+    && (p['N° Participación'])
+  );
+  if (!elegibles.length) { showToast('⚠️ No hay participantes aprobados'); return; }
+
+  sorteando = true;
+  ganador = null;
+  document.getElementById('btn-sorteo').disabled = true;
+  document.getElementById('winner-box').classList.remove('show');
+  document.getElementById('sorteo-num').classList.remove('anim');
+
+  const ganadorReal = elegibles[Math.floor(Math.random() * elegibles.length)];
+  let ticks = 0, maxTicks = 28 + Math.floor(Math.random() * 16);
+
+  const iv = setInterval(() => {
+    const r = elegibles[Math.floor(Math.random() * elegibles.length)];
+    document.getElementById('sorteo-num').textContent  = r['N° Participación'];
+    document.getElementById('sorteo-name').textContent = `${r['Nombre']} ${r['Apellido']}`;
+    ticks++;
+    if (ticks >= maxTicks) {
+      clearInterval(iv);
+      mostrarGanador(ganadorReal);
+      sorteando = false;
+      document.getElementById('btn-sorteo').disabled = false;
+    }
+  }, ticks < 20 ? 80 : 160);
+}
+
+function mostrarGanador(p) {
+  document.getElementById('sorteo-num').textContent  = p['N° Participación'];
+  document.getElementById('sorteo-name').textContent = `${p['Nombre']} ${p['Apellido']}`;
+  document.getElementById('sorteo-num').classList.add('anim');
+  document.getElementById('w-num').textContent  = p['N° Participación'];
+  document.getElementById('w-name').textContent = `${p['Nombre']} ${p['Apellido']}`;
+  document.getElementById('w-emp').textContent  = p['Empresa'] || '';
+  document.getElementById('winner-box').classList.add('show');
+  ganador = p;
+  lanzarConfetti();
+  showToast('🎉 ¡Ganador sorteado!', 4000);
+}
+
+function resetSorteo() {
+  if (!confirm('¿Reiniciar el sorteo?')) return;
+  ganador = null; sorteando = false;
+  document.getElementById('sorteo-num').textContent  = '—';
+  document.getElementById('sorteo-num').classList.remove('anim');
+  document.getElementById('sorteo-name').textContent = '';
+  document.getElementById('winner-box').classList.remove('show');
+  document.getElementById('btn-sorteo').disabled = false;
+  document.getElementById('confetti-layer').innerHTML = '';
+}
+
+function lanzarConfetti() {
+  const cl = document.getElementById('confetti-layer');
+  cl.innerHTML = '';
+  const colors = ['#F7941D','#0D2137','#27AE60','#F1C40F','#E74C3C','#3498DB'];
+  for (let i = 0; i < 80; i++) {
+    const d = document.createElement('div');
+    d.className = 'confetti-piece';
+    d.style.cssText = `left:${Math.random()*100}%;top:-20px;background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${Math.random()>.5?'50%':'2px'};width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;
+      animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*1.5}s;`;
+    cl.appendChild(d);
+  }
+  setTimeout(() => { cl.innerHTML = ''; }, 6000);
+}
+
+// ── DIPLOMAS MASIVOS ──
+function abrirDiplomas() {
+  if (!participantes.length) { showToast('⚠️ Cargá los participantes primero'); return; }
+  const win = window.open('', '_blank');
+  win.document.write(htmlDiplomas(participantes));
+  win.document.close();
+}
+
+function htmlDiplomas(lista) {
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  const ganadorNum = ganador ? (ganador['N° Participación'] || '') : '';
+
+  const items = lista.map(p => {
+    const nombre  = `${p['Nombre']||''} ${p['Apellido']||''}`.trim();
+    const empresa = p['Empresa'] || '';
+    const dni     = p['DNI'] || '';
+    const puntaje = p['Puntaje'] || '';
+    const num     = p['N° Participación'] || '';
+    const esGanador = ganadorNum && num === ganadorNum;
+
+    return `<div style="page-break-after:always;width:210mm;min-height:145mm;margin:0 auto 20px;background:#fff;border:1px solid #eee;display:flex;align-items:stretch;box-sizing:border-box;position:relative;overflow:hidden;">
+      ${esGanador ? '<div style="position:absolute;top:12px;right:12px;background:#F1C40F;color:#0D2137;font-weight:800;font-size:11px;padding:4px 12px;border-radius:50px;">🏆 GANADOR</div>' : ''}
+      <div style="width:12px;background:#F7941D;flex-shrink:0;"></div>
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div style="background:#0D2137;padding:16px 22px;display:flex;align-items:center;gap:12px;">
+          <div style="width:38px;height:38px;background:#F7941D;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px;color:#fff;flex-shrink:0;">SH</div>
+          <div>
+            <div style="font-weight:900;font-size:17px;color:#F7941D;">DIPLOMA DE PARTICIPACIÓN</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.55);">Seguridad e Higiene en el Trabajo · CD Esteban Echeverría</div>
+          </div>
+        </div>
+        <div style="flex:1;padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">Se certifica que:</div>
+            <div style="font-weight:900;font-size:26px;color:#0D2137;border-bottom:3px solid #F7941D;display:inline-block;padding-bottom:2px;">${nombre.toUpperCase()}</div>
+            <div style="font-size:12px;color:#555;margin-top:8px;">participó satisfactoriamente en la capacitación de</div>
+            <div style="font-weight:900;font-size:14px;color:#0D2137;margin:4px 0;">SEGURIDAD E HIGIENE EN EL TRABAJO</div>
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+              <span style="background:#f0f4f8;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700;color:#0D2137;">DNI: ${dni}</span>
+              <span style="background:#f0f4f8;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700;color:#0D2137;">${empresa}</span>
+              <span style="background:#eefaf3;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700;color:#27AE60;">Puntaje: ${puntaje}</span>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;">
+            <div style="text-align:center;width:150px;">
+              <div style="border-top:1.5px solid #ccc;padding-top:5px;font-size:9px;color:#aaa;">Firma del participante</div>
+            </div>
+            <div style="text-align:center;width:120px;">
+              <div style="font-size:11px;font-weight:700;color:#0D2137;">${fecha}</div>
+              <div style="border-top:1.5px solid #ccc;padding-top:5px;font-size:9px;color:#aaa;">Fecha</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#0D2137;padding:9px 22px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.7);">N°: <span style="color:#F7941D;letter-spacing:1px;">${num}</span></div>
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.9);">¡Gracias por participar!</div>
+        </div>
+      </div>
+      <div style="width:5px;background:#0D2137;flex-shrink:0;"></div>
+    </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+    <title>Diplomas — Trivia SH</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#ddd;padding:20px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style>
+  </head><body>
+    <div class="no-print" style="text-align:center;margin-bottom:20px;display:flex;gap:12px;justify-content:center;">
+      <button onclick="window.print()" style="background:#0D2137;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">🖨️ Imprimir todos</button>
+      <button onclick="window.close()" style="background:#aaa;color:#fff;border:none;padding:12px 20px;border-radius:8px;font-size:15px;cursor:pointer;">✕ Cerrar</button>
+      <span style="line-height:46px;font-size:14px;color:#555;">${lista.length} diploma${lista.length!==1?'s':''}</span>
+    </div>
+    ${items}
+  </body></html>`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// HELPERS UI
+// ──────────────────────────────────────────────────────────────────
+function showLoading(v) { document.getElementById('loading').classList.toggle('active', v); }
+function showToast(msg, ms = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('active');
+  setTimeout(() => t.classList.remove('active'), ms);
+}
+</script>
+</body>
+</html>
